@@ -58,8 +58,12 @@ def update_stock(id, stock):
         cur = conn.cursor()
         cur.execute(f"UPDATE books SET stock = {stock} WHERE id = {id}")
         conn.commit()
-    finally:
         return True
+    except Exception as e:  
+        print(f"Error updating stock: {e}")
+        return False
+    finally:
+        conn.close()
 
 
 def save_order(order_id, username, total, status):
