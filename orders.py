@@ -46,13 +46,12 @@ def process_order(token, items, coupon=None, shipping="standard", log=None):
             return None
         total = 0
         total = calculate_items_total(items)
-        if coupon:
-            if coupon in COUPONS:
-                total = total * COUPONS[coupon]
+        if coupon and coupon in COUPONS:
+            total = total * COUPONS[coupon]
 
         if shipping in SHIPPING_COSTS:
             total = total + SHIPPING_COSTS[shipping]
-            
+
         total = total + total * TAX
         order_id = len(log) + 1
         database.save_order(order_id, username, total, "PENDING")
