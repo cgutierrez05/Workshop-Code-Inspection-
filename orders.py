@@ -6,6 +6,36 @@ import auth
 TAX = 0.15
 SEPARATOR = "=============================="
 
+COUPONS = {
+    "WELCOME10": 0.9,
+    "BLACKFRIDAY": 0.5,
+    "STAFF": 0.7
+}
+
+SHIPPING_COSTS = {
+    "standard": 3,
+    "express": 10
+}
+
+def calculate_items_total(items):
+    total = 0
+    for item in items:
+        book = database.get_book(item["book_id"])
+        if not book:
+            print("Book not found")
+            continue
+        if item["qty"] <= 0:
+            print("Invalid quantity")
+            continue
+        if book[3] >= item["qty"]:
+            total += book[2] * item["qty"]
+            database.update_stock(book[0], book[3] - item["qty"])
+        elif book[3] > 0:
+            print("Only " + str(book[3]) + " units available for " + book[1])
+        else:
+            print("Book out of stock: " + book[1])
+    return total
+
 def process_order(token, items, coupon=None, shipping="standard", log=None):
     if log is None:
         log = []
@@ -15,34 +45,14 @@ def process_order(token, items, coupon=None, shipping="standard", log=None):
             print("Empty order")
             return None
         total = 0
-        for item in items:
-            book = database.get_book(item["book_id"])
-            if book:
-                if book[3] >= item["qty"]:
-                    if item["qty"] > 0:
-                        total = total + book[2] * item["qty"]
-                        database.update_stock(book[0], book[3] - item["qty"])
-                    else:
-                        print("Invalid quantity")
-                else:
-                    if book[3] > 0:
-                        print("Only " + str(book[3]) + " units available for " + book[1])
-                    else:
-                        print("Book out of stock: " + book[1])
-            else:
-                print("Book not found")
+        total = calculate_items_total(items)
         if coupon:
-            if coupon == "WELCOME10":
-                total = total * 0.9
-            elif coupon == "BLACKFRIDAY":
-                total = total * 0.5
-            elif coupon == "STAFF":
-                total = total * 0.7
+            if coupon in COUPONS:
+                total = total * COUPONS[coupon]
 
-        if shipping == "express":
-            total = total + 10
-        elif shipping == "standard":
-            total = total + 3
+        if shipping in SHIPPING_COSTS:
+            total = total + SHIPPING_COSTS[shipping]
+            
         total = total + total * TAX
         order_id = len(log) + 1
         database.save_order(order_id, username, total, "PENDING")
