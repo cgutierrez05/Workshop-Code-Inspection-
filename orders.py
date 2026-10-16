@@ -17,6 +17,7 @@ SHIPPING_COSTS = {
     "express": 10
 }
 
+
 def calculate_items_total(items):
     total = 0
     for item in items:
@@ -36,30 +37,37 @@ def calculate_items_total(items):
             print("Book out of stock: " + book[1])
     return total
 
+
+def print_items_subtotal(items):
+    subtotal = 0
+    for item in items:
+        book = database.get_book(item["book_id"])
+        line_total = book[2] * item["qty"]
+        subtotal = subtotal + line_total
+        print(book[1] + " x" + str(item["qty"]) + " = " + str(line_total))
+    return subtotal
+
+
 def process_order(token, items, coupon=None, shipping="standard", log=None):
     if log is None:
         log = []
     username = auth.sessions.get(token)
-    if username != None:
-        if items == []:
-            print("Empty order")
-            return None
-        total = 0
-        total = calculate_items_total(items)
-        if coupon and coupon in COUPONS:
-            total = total * COUPONS[coupon]
-
-        if shipping in SHIPPING_COSTS:
-            total = total + SHIPPING_COSTS[shipping]
-
-        total = total + total * TAX
-        order_id = len(log) + 1
-        database.save_order(order_id, username, total, "PENDING")
-        log.append(order_id)
-        return round(total, 2)
-    else:
+    if username is None:
         print("Invalid session")
         return None
+    if not items:
+        print("Empty order")
+        return None
+    total = calculate_items_total(items)
+    if coupon and coupon in COUPONS:
+        total = total * COUPONS[coupon]
+    if shipping in SHIPPING_COSTS:
+        total = total + SHIPPING_COSTS[shipping]
+    total = total + total * TAX
+    order_id = len(log) + 1
+    database.save_order(order_id, username, total, "PENDING")
+    log.append(order_id)
+    return round(total, 2)
 
 
 def print_invoice(username, items):
@@ -67,12 +75,7 @@ def print_invoice(username, items):
     print("BOOKSTORE INVOICE")
     print("Customer: " + username)
     print(SEPARATOR)
-    subtotal = 0
-    for item in items:
-        book = database.get_book(item["book_id"])
-        line_total = book[2] * item["qty"]
-        subtotal = subtotal + line_total
-        print(book[1] + " x" + str(item["qty"]) + " = " + str(line_total))
+    subtotal = print_items_subtotal(items)
     tax = subtotal * TAX
     print("Subtotal: " + str(round(subtotal, 2)))
     print("Tax: " + str(round(tax, 2)))
@@ -85,12 +88,7 @@ def print_quote(username, items):
     print("BOOKSTORE QUOTE")
     print("Customer: " + username)
     print(SEPARATOR)
-    subtotal = 0
-    for item in items:
-        book = database.get_book(item["book_id"])
-        line_total = book[2] * item["qty"]
-        subtotal = subtotal + line_total
-        print(book[1] + " x" + str(item["qty"]) + " = " + str(line_total))
+    subtotal = print_items_subtotal(items)
     tax = subtotal * TAX
     print("Subtotal: " + str(round(subtotal, 2)))
     print("Tax: " + str(round(tax, 2)))
